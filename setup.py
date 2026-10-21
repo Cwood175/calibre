@@ -113,7 +113,21 @@ def main(args=sys.argv):
             getattr(commands, cmd).clean()
         return 0
 
-    command.run_all(opts)
+    try:
+        command.run_all(opts)
+    except subprocess.CalledProcessError as e:
+        print()
+        prints('Error: external command failed with return code', getattr(e, 'returncode', 1))
+        prints('Command:', getattr(e, 'cmd', '<unknown>'))
+        return getattr(e, 'returncode', 1)
+    except OSError as e:
+        print()
+        prints('OS error while running command:', e)
+        return 1
+    except Exception as e:
+        print()
+        prints('Unexpected error while running command:', e)
+        return 1
 
     warnings = get_warnings()
     if warnings:
@@ -128,4 +142,18 @@ def main(args=sys.argv):
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except subprocess.CalledProcessError as e:
+        print()
+        prints('Error: external command failed with return code', getattr(e, 'returncode', 1))
+        prints('Command:', getattr(e, 'cmd', '<unknown>'))
+        sys.exit(getattr(e, 'returncode', 1))
+    except OSError as e:
+        print()
+        prints('OS error while running command:', e)
+        sys.exit(1)
+    except Exception as e:
+        print()
+        prints('Unexpected error:', e)
+        sys.exit(1)

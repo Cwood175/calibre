@@ -652,7 +652,9 @@ class Build(Command):
         if is_macos_universal_build:
             cmd += ['-DCMAKE_OSX_ARCHITECTURES=x86_64;arm64']
         if sw and os.path.exists(os.path.join(sw, 'qt')):
-            cmd += ['-DCMAKE_SYSTEM_PREFIX_PATH=' + os.path.join(sw, 'qt').replace(os.sep, '/')]
+            qtpath = os.path.join(sw, 'qt').replace(os.sep, '/')
+            # Provide both system prefix and CMAKE_PREFIX_PATH so CMake can locate Qt packages/targets
+            cmd += ['-DCMAKE_SYSTEM_PREFIX_PATH=' + qtpath, '-DCMAKE_PREFIX_PATH=' + qtpath]
         os.makedirs(bdir)
         cwd = os.getcwd()
         os.chdir(bdir)
