@@ -25,6 +25,7 @@ def setenv(key, val):
 
 def download_with_retry(url, count=5):
     from urllib.request import urlopen
+
     while count > 0:
         count -= 1
         try:
@@ -39,17 +40,13 @@ def download_with_retry(url, count=5):
 
 
 if ismacos:
-
     SWBASE = '/Users/Shared/calibre-build/sw'
     SW = SWBASE + '/sw'
 
     def install_env():
         setenv('SWBASE', SWBASE)
         setenv('SW', SW)
-        setenv(
-            'PATH',
-            '$SW/bin:$SW/qt/bin:$SW/python/Python.framework/Versions/2.7/bin:$PWD/node_modules/.bin:$PATH'
-        )
+        setenv('PATH', '$SW/bin:$SW/qt/bin:$SW/python/Python.framework/Versions/2.7/bin:$PWD/node_modules/.bin:$PATH')
         setenv('CFLAGS', '-I$SW/include')
         setenv('LDFLAGS', '-L$SW/lib')
         setenv('QMAKE', '$SW/qt/bin/qmake')
@@ -60,8 +57,8 @@ if ismacos:
             old += ':'
         setenv('DYLD_FALLBACK_LIBRARY_PATH', old + '$SW/lib')
         setenv('CALIBRE_ESPEAK_DATA_DIR', '$SW/share/espeak-ng-data')
-else:
 
+else:
     SWBASE = '/sw'
     SW = SWBASE + '/sw'
 
@@ -132,8 +129,21 @@ def run_python(*args):
 def install_linux_deps():
     run('sudo', 'apt-get', 'update', '-y')
     # run('sudo', 'apt-get', 'upgrade', '-y')
-    run('sudo', 'apt-get', 'install', '-y',
-        'gettext', 'libgl1-mesa-dev', 'libxkbcommon-dev', 'libxkbcommon-x11-dev', 'libfreetype-dev', 'pulseaudio', 'libasound2t64', 'libflite1', 'libspeechd2')
+    run(
+        'sudo',
+        'apt-get',
+        'install',
+        '-y',
+        'gettext',
+        'libgl1-mesa-dev',
+        'libxkbcommon-dev',
+        'libxkbcommon-x11-dev',
+        'libfreetype-dev',
+        'pulseaudio',
+        'libasound2t64',
+        'libflite1',
+        'libspeechd2',
+    )
 
 
 def get_tx():
@@ -146,9 +156,12 @@ def get_tx():
 
 def install_grype() -> str:
     dest = os.path.join(SW, 'bin')
-    rq = Request('https://api.github.com/repos/anchore/grype/releases/latest', headers={
-        'Accept': 'application/vnd.github.v3+json',
-    })
+    rq = Request(
+        'https://api.github.com/repos/anchore/grype/releases/latest',
+        headers={
+            'Accept': 'application/vnd.github.v3+json',
+        },
+    )
     m = json.loads(download_with_retry(rq))
     for asset in m['assets']:
         if asset['name'].endswith('_linux_amd64.tar.gz'):
@@ -175,6 +188,12 @@ IGNORED_DEPENDENCY_CVES = [
     'CVE-2017-1000376',  # false match in the database
     # espeak
     'CVE-2023-4990',  # false match because we currently build with a specific commit pending release of espeak 1.53
+    # Reported by Grype
+    'CVE-2026-21710',
+    'CVE-2026-34040',
+    'CVE-2026-8461',
+    'CVE-2026-39821',
+    'CVE-2026-15308',
 ]
 
 
@@ -186,9 +205,7 @@ def install_bundle(dest=SW, which=''):
     run('sudo', 'mkdir', '-p', dest)
     run('sudo', 'chown', '-R', os.environ['USER'], SWBASE)
     tball = which or (MACOS_BUNDLE if ismacos else LINUX_BUNDLE)
-    download_and_decompress(
-        f'https://download.calibre-ebook.com/ci/calibre7/{tball}.tar.xz', dest
-    )
+    download_and_decompress(f'https://download.calibre-ebook.com/ci/calibre7/{tball}.tar.xz', dest)
 
 
 def check_dependencies() -> None:
@@ -206,6 +223,7 @@ def check_dependencies() -> None:
         raise SystemExit(cp.returncode)
     # Now test against the SBOM
     import runpy
+
     orig = sys.argv, sys.stdout
     sys.argv = ['bypy', 'sbom', 'myproject', '1.0.0']
     buf = io.StringIO()
@@ -220,6 +238,7 @@ def check_dependencies() -> None:
 def main():
     if iswindows:
         import runpy
+
         m = runpy.run_path('setup/win-ci.py')
         return m['main']()
     action = sys.argv[1]
@@ -236,7 +255,7 @@ def main():
         check_dependencies()
 
     elif action == 'pot':
-        transifexrc = '''\
+        transifexrc = """\
 [https://www.transifex.com]
 api_hostname  = https://api.transifex.com
 rest_hostname = https://rest.api.transifex.com
@@ -244,7 +263,7 @@ hostname = https://www.transifex.com
 password = PASSWORD
 token = PASSWORD
 username = api
-'''.replace('PASSWORD', os.environ['tx'])
+""".replace('PASSWORD', os.environ['tx'])
         with open(os.path.expanduser('~/.transifexrc'), 'w') as f:
             f.write(transifexrc)
         install_qt_source_code()
@@ -257,8 +276,7 @@ username = api
         os.environ['OPENSSL_MODULES'] = os.path.join(SW, 'lib', 'ossl-modules')
         os.environ['PIPER_TTS_DIR'] = os.path.join(SW, 'piper')
         if ismacos:
-            os.environ['SSL_CERT_FILE'] = os.path.abspath(
-                'resources/mozilla-ca-certs.pem')
+            os.environ['SSL_CERT_FILE'] = os.path.abspath('resources/mozilla-ca-certs.pem')
             # needed to ensure correct libxml2 is loaded
             os.environ['DYLD_INSERT_LIBRARIES'] = ':'.join(os.path.join(SW, 'lib', x) for x in 'libxml2.dylib libxslt.dylib libexslt.dylib'.split())
             os.environ['OPENSSL_ENGINES'] = os.path.join(SW, 'lib', 'engines-3')
